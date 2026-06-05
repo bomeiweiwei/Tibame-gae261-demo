@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask Azure Demo</title>
+
+    <style>
+
+        body {
+            font-family: Arial;
+            background-color: #f4f6f9;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        input[type=text] {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #0078D4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #005ea6;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .tab-button {
+            width: auto;
+            background-color: #e8eef7;
+            color: #333;
+            border-radius: 8px 8px 0 0;
+            padding: 12px 20px;
+        }
+
+        .tab-button:hover {
+            background-color: #d6e6f8;
+        }
+
+        .tab-button.active {
+            background-color: #0078D4;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #eef4ff;
+            border-radius: 8px;
+        }
+
+        .feature-box {
+            background-color: #eef4ff;
+            border-left: 5px solid #0078D4;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .feature-box h3 {
+            margin-top: 0;
+            color: #0078D4;
+        }
+
+        .feature-box p {
+            margin-bottom: 0;
+        }
+
+        .image-box {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8fbff;
+            border: 1px solid #d9e8f7;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+    </style>
+
+</head>
+<body>
+
+    <div class="container">
+
+        <h1>Flask Azure 測試網站</h1>
+
+        <div class="tabs">
+            <button type="button" class="tab-button active" onclick="openTab(event, 'tab-text')">
+                文字測試
+            </button>
+            <button type="button" class="tab-button" onclick="openTab(event, 'tab-image')">
+                圖片測試
+            </button>
+        </div>
+
+        <div id="tab-text" class="tab-content {% if active_tab == 'tab1' %}active{% endif %}" id="tab1">
+
+            <div class="feature-box">
+
+                <h3>目前測試功能</h3>
+
+                <p>
+                    測試將使用者輸入的內容傳送到後端，並在前端顯示處理結果。
+                </p>
+
+            </div>
+
+            <form action="/submit" method="POST">
+
+                <input
+                    type="text"
+                    value="如果只能買一張股票，你會買Google還是微軟？"
+                    name="message"
+                    placeholder="請輸入內容..."
+                    required
+                >
+
+                <button type="submit">
+                    送出
+                </button>
+
+            </form>
+
+        </div>
+
+        <div id="tab-image" class="tab-content {% if active_tab == 'tab2' %}active{% endif %}" id="tab2">
+
+            <div class="feature-box">
+
+                <h3>圖片測試功能</h3>
+
+                <p>
+                    顯示指定圖片，並將圖片路徑提交到後端進行圖片分析。
+                </p>
+
+            </div>
+
+            {% set display_image_url = image_url if image_url else url_for('static', filename='uploads/images/cat.png') %}
+
+            <form action="/submit_with_img" method="POST">
+
+                <div class="image-box">
+                    <img
+                        src="{{ display_image_url }}"
+                        alt="測試圖片"
+                        class="preview-image"
+                    >
+                </div>
+
+                <input type="hidden" name="active_tab" value="tab2">
+
+                <input
+                    type="text"
+                    value="圖片中的生物名稱是什麼？告訴我名字就好"
+                    name="message"
+                    placeholder="請輸入內容..."
+                    required
+                >
+
+                <input
+                    type="hidden"
+                    name="image_url"
+                    value="{{ display_image_url }}"
+                >
+
+                <button type="submit">
+                    送出圖片分析
+                </button>
+
+            </form>
+
+        </div>
+
+        {% if gemini_result %}
+
+        <div class="result">
+
+            <h3>gemini結果：</h3>
+
+            <p>{{ gemini_result }}</p>
+
+        </div>
+
+        {% endif %}
+
+        {% if azure_result %}
+
+        <div class="result">
+
+            <h3>azure結果：</h3>
+
+            <p>{{ azure_result }}</p>
+
+        </div>
+
+        {% endif %}
+
+        {% if ollama_result %}
+
+        <div class="result">
+
+            <h3>ollama結果：</h3>
+
+            <p>{{ ollama_result }}</p>
+
+        </div>
+
+        {% endif %}
+
+        {% if lmstudio_result %}
+
+        <div class="result">
+
+            <h3>lmstudio結果：</h3>
+
+            <p>{{ lmstudio_result }}</p>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+    <script>
+        function openTab(event, tabId) {
+            const tabContents = document.querySelectorAll('.tab-content');
+            const tabButtons = document.querySelectorAll('.tab-button');
+
+            tabContents.forEach(function(content) {
+                content.classList.remove('active');
+            });
+
+            tabButtons.forEach(function(button) {
+                button.classList.remove('active');
+            });
+
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+    </script>
+
+</body>
+</html>

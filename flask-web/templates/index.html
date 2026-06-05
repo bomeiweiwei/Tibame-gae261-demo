@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask Azure Demo</title>
+
+    <style>
+
+        body {
+            font-family: Arial;
+            background-color: #f4f6f9;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        input[type=text] {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #0078D4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #005ea6;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #eef4ff;
+            border-radius: 8px;
+        }
+
+        .feature-box {
+            background-color: #eef4ff;
+            border-left: 5px solid #0078D4;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .feature-box h3 {
+            margin-top: 0;
+            color: #0078D4;
+        }
+
+        .feature-box p {
+            margin-bottom: 0;
+        }
+
+    </style>
+
+</head>
+<body>
+
+    <div class="container">
+
+        <h1>Flask Azure 測試網站</h1>
+        <div class="feature-box">
+
+            <h3>目前測試功能</h3>
+
+            <p>
+                測試將使用者輸入的內容傳送到後端，並在前端顯示處理結果。
+            </p>
+
+        </div>
+
+        <form action="/submit" method="POST">
+
+            <input
+                type="text"
+                name="message"
+                placeholder="請輸入內容..."
+                required
+            >
+
+            <button type="submit">
+                送出
+            </button>
+
+        </form>
+
+        {% if result %}
+
+        <div class="result">
+
+            <h3>結果：</h3>
+
+            <p>{{ result }}</p>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</body>
+</html>

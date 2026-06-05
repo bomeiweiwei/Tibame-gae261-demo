@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask Azure Demo</title>
+
+    <style>
+
+        body {
+            font-family: Arial;
+            background-color: #f4f6f9;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        input[type=text] {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #0078D4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #005ea6;
+        }
+
+        button:disabled {
+            background-color: #a0a0a0;
+            cursor: not-allowed;
+        }
+
+        .record-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            margin-bottom: 12px;
+        }
+
+        .record-controls button {
+            flex: 1;
+            width: auto;
+        }
+
+        #btn-start {
+            background-color: #28a745;
+        }
+
+        #btn-start:hover:not(:disabled) {
+            background-color: #1e7e34;
+        }
+
+        #btn-stop {
+            background-color: #dc3545;
+        }
+
+        #btn-stop:hover:not(:disabled) {
+            background-color: #bd2130;
+        }
+
+        #recording-status {
+            font-size: 14px;
+            color: #dc3545;
+            min-height: 20px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #eef4ff;
+            border-radius: 8px;
+        }
+
+        .feature-box {
+            background-color: #eef4ff;
+            border-left: 5px solid #0078D4;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .feature-box h3 {
+            margin-top: 0;
+            color: #0078D4;
+        }
+
+        .feature-box p {
+            margin-bottom: 0;
+        }
+
+    </style>
+
+</head>
+<body>
+
+    <div class="container">
+
+        <h1>Flask Azure 測試網站</h1>
+        <div class="feature-box">
+
+            <h3>目前測試功能</h3>
+
+            <p>
+                偵測使用者輸入語言，並使用拉丁拼音顯示發音結果，同時提供語音播放功能。
+            </p>
+
+        </div>
+
+        <form action="/submit" method="POST">
+
+            <input
+                type="text"
+                id="message-input"
+                name="message"
+                placeholder="請輸入內容..."
+                required
+            >
+
+            <div id="recording-status"></div>
+
+            <div class="record-controls">
+                <button type="button" id="btn-start">開始錄音</button>
+                <button type="button" id="btn-stop" disabled>結束錄音</button>
+            </div>
+
+            <button type="submit">
+                送出
+            </button>
+
+        </form>
+
+        {% if result %}
+
+        <div class="result">
+
+            <h3>結果：</h3>
+
+            <p>{{ result }}</p>
+
+        </div>
+
+        <div class="result">
+
+            <h3>中文翻譯：</h3>
+
+            <p>{{ zh_trans }}</p>
+
+        </div>
+
+        <audio controls>
+            <source
+                src="{{ url_for('speak') }}?text={{ user_input | urlencode }}&language={{ language }}"
+                type="audio/mpeg"
+            >
+        </audio>
+        {% endif %}
+    </div>
+
+    <script>
+        const btnStart  = document.getElementById('btn-start');
+        const btnStop   = document.getElementById('btn-stop');
+        const statusEl  = document.getElementById('recording-status');
+        const msgInput  = document.getElementById('message-input');
+
+        let mediaRecorder = null;
+        let audioChunks   = [];
+
+        btnStart.addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                mediaRecorder  = new MediaRecorder(stream);
+                audioChunks    = [];
+
+                mediaRecorder.addEventListener('dataavailable', e => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                });
+
+                mediaRecorder.addEventListener('stop', () => {
+                    stream.getTracks().forEach(t => t.stop());
+                    statusEl.textContent = '辨識中…';
+
+                    const blob = new Blob(audioChunks, { type: 'audio/webm' });
+
+                    let preview = document.getElementById('recording-preview');
+                    if (!preview) {
+                        preview = document.createElement('audio');
+                        preview.id       = 'recording-preview';
+                        preview.controls = true;
+                        preview.style.width     = '100%';
+                        preview.style.marginTop = '10px';
+                        btnStop.parentElement.insertAdjacentElement('afterend', preview);
+                    }
+                    preview.src = URL.createObjectURL(blob);
+
+                    const formData = new FormData();
+                    formData.append('audio', blob, 'recording.webm');
+
+                    fetch('/stt', { method: 'POST', body: formData })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.text !== undefined) {
+                                msgInput.value = data.text;
+                                statusEl.textContent = data.text ? '辨識完成' : '未偵測到語音';
+                            } else {
+                                statusEl.textContent = `辨識失敗：${data.error}`;
+                            }
+                        })
+                        .catch(() => {
+                            statusEl.textContent = '辨識請求失敗';
+                        })
+                        .finally(() => {
+                            btnStart.disabled = false;
+                        });
+                });
+
+                mediaRecorder.start();
+
+                btnStart.disabled = true;
+                btnStop.disabled  = false;
+                statusEl.textContent = '● 錄音中…';
+
+            } catch (err) {
+                statusEl.textContent = `無法開啟麥克風：${err.message}`;
+            }
+        });
+
+        btnStop.addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                btnStop.disabled = true;
+            }
+        });
+    </script>
+
+</body>
+</html>

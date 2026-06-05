@@ -1,0 +1,11 @@
+langchain_community
+pandas
+langchain_huggingface
+faiss-cpu
+sentence-transformers
+ipykernel
+langchain-google-genai
+langchain-openai
+tiktoken
+chardet
+langchain_ollama
