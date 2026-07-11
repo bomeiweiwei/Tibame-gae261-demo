@@ -25,25 +25,32 @@ class GeminiEmbeddings(Embeddings):
             location=os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1"),
         )
 
-        self.model = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-2")
+        self.model = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001")
+
+        dimensionality = os.getenv("GEMINI_EMBEDDING_DIMENSIONALITY")
+        self.output_dimensionality = int(dimensionality) if dimensionality else None
+
+    def _config(self, task_type: str) -> types.EmbedContentConfig:
+        return types.EmbedContentConfig(
+            task_type=task_type,
+            output_dimensionality=self.output_dimensionality,
+        )
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """將多個文檔（Documents）轉換為向量群（批次處理）"""
         if not texts:
             return []
-        
+
         # 加上這行來觀察自動呼叫的行為
         print(f"--- LangChain 自動呼叫了 embed_documents，本次批次處理 {len(texts)} 筆文字 ---")
-            
+
         # 修正：直接將整個 texts 列表傳入，利用 API 的批次處理功能
         result = self.client.models.embed_content(
             model=self.model,
             contents=texts,
-            config=types.EmbedContentConfig(
-                task_type="RETRIEVAL_DOCUMENT"  # 明確指定為文檔建立索引
-            )
+            config=self._config("RETRIEVAL_DOCUMENT"),  # 明確指定為文檔建立索引
         )
-        
+
         # 解析回傳的向量列表
         return [embedding.values for embedding in result.embeddings]
 
@@ -52,9 +59,7 @@ class GeminiEmbeddings(Embeddings):
         result = self.client.models.embed_content(
             model=self.model,
             contents=text,
-            config=types.EmbedContentConfig(
-                task_type="RETRIEVAL_QUERY"  # 明確指定為搜尋問題
-            )
+            config=self._config("RETRIEVAL_QUERY"),  # 明確指定為搜尋問題
         )
 
         return result.embeddings[0].values
